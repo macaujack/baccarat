@@ -39,9 +39,9 @@ impl std::fmt::Debug for Card {
 
 impl Card {
     pub fn new(suit: Suit, value: u8) -> Card {
-        Card { suit, value, }
+        Card { suit, value }
     }
-    
+
     pub fn from_index(index: usize) -> Card {
         if index >= 52 {
             panic!("Index must be < 52");
@@ -51,11 +51,11 @@ impl Card {
             value: (index % 13 + 1) as u8,
         }
     }
-    
+
     pub fn to_value_index(&self) -> usize {
         (self.value - 1) as usize
     }
-    
+
     pub fn to_index(&self) -> usize {
         self.suit as usize * 13 + (self.value - 1) as usize
     }
@@ -67,8 +67,6 @@ pub struct Shoe {
     cut_card_index: usize,
     cards: Vec<Card>,
     index: usize,
-    
-    counter: Counter,
 }
 
 impl Shoe {
@@ -81,22 +79,19 @@ impl Shoe {
                 }
             }
         }
-        
+
         Shoe {
             number_of_decks,
             cut_card_index: ((number_of_decks * 52) as f64 * cut_card_proportion) as usize,
             cards,
             index: 0,
-            
-            counter: Counter::new(number_of_decks),
         }
     }
-    
+
     pub fn shuffle_with_firsts(&mut self, firsts: &[Card]) {
         self.index = 0;
-        self.counter = Counter::new(self.number_of_decks);
         let mut card_count = [0; 52];
-        
+
         for (i, card) in firsts.iter().enumerate() {
             let count = &mut card_count[card.to_index()];
             *count += 1;
@@ -105,7 +100,7 @@ impl Shoe {
             }
             self.cards[i] = *card;
         }
-        
+
         let mut idx = firsts.len();
         for suit in SUITS {
             for value in 1..=13 {
@@ -117,88 +112,45 @@ impl Shoe {
                 }
             }
         }
-        
+
         self.cards[firsts.len()..].shuffle(&mut rand::thread_rng());
     }
-    
+
     pub fn retry_without_shuffle(&mut self) {
         self.index = 0;
-        self.counter = Counter::new(self.number_of_decks);
     }
-    
+
     pub fn deal_card(&mut self) -> Card {
         let card = self.cards[self.index];
         self.index += 1;
-        self.counter.remove_card(card);
         card
     }
-    
+
     pub fn shuffle(&mut self) {
         self.shuffle_with_firsts(&[]);
     }
-    
+
     pub fn get_number_of_decks(&self) -> u32 {
         self.number_of_decks
     }
-    
+
     pub fn get_next_cards(&self) -> &[Card] {
         &self.cards[self.index..]
     }
-    
-    pub fn get_value_count(&self) -> &[u32; 13] {
-        self.counter.get_value_count()
-    }
-    
-    pub fn get_card_count(&self) -> &[u32; 52] {
-        self.counter.get_card_count()
-    }
-    
+
     pub fn get_index(&self) -> usize {
         self.index
     }
-    
+
     pub fn is_cut_card_reached(&self) -> bool {
         self.index >= self.cut_card_index
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Counter {
-    value_count: [u32; 13],
-    card_count: [u32; 52],
-}
-
-impl Counter {
-    pub fn new(number_of_decks: u32) -> Self {
-        Counter {
-            value_count: [4 * number_of_decks; 13],
-            card_count: [number_of_decks; 52],
-        }
-    }
-    
-    pub fn add_card(&mut self, card: Card) {
-        self.value_count[card.to_value_index()] += 1;
-        self.card_count[card.to_index()] += 1;
-    }
-    
-    pub fn remove_card(&mut self, card: Card) {
-        self.value_count[card.to_value_index()] -= 1;
-        self.card_count[card.to_index()] -= 1;
-    }
-    
-    pub fn get_value_count(&self) -> &[u32; 13] {
-        &self.value_count
-    }
-    
-    pub fn get_card_count(&self) -> &[u32; 52] {
-        &self.card_count
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_new_shoe() {
         let shoe = Shoe::new(8, 0.9);
@@ -206,7 +158,7 @@ mod tests {
         assert_eq!(shoe.cards[51], Card::new(Suit::Spade, 13));
         assert_eq!(shoe.cards[52], Card::new(Suit::Diamond, 1));
     }
-    
+
     #[test]
     fn test_shuffle_with_firsts() {
         let firsts = [
@@ -217,9 +169,9 @@ mod tests {
         ];
         let mut shoe = Shoe::new(8, 0.9);
         shoe.shuffle_with_firsts(&firsts);
-        
+
         assert_eq!(shoe.index, 0);
-        
+
         // Check if cards' numbers are correct.
         assert_eq!(shoe.cards.len(), shoe.number_of_decks as usize * 52);
         let mut count = [0; 52];
@@ -229,12 +181,12 @@ mod tests {
                 panic!("Card count is invalid")
             }
         }
-        
+
         // Check if first few cards are fixed.
         for (i, card) in firsts.iter().enumerate() {
             assert_eq!(shoe.cards[i], *card);
         }
-        
+
         // Check if the rest is shuffled.
         let first_random_card = shoe.cards[firsts.len()];
         let mut ok = false;
@@ -247,7 +199,7 @@ mod tests {
         }
         assert!(ok);
     }
-    
+
     #[test]
     fn test_checking_cut_card_reached() {
         let mut shoe = Shoe::new(8, 0.9);
@@ -259,7 +211,7 @@ mod tests {
         }
         shoe.deal_card();
         assert!(shoe.is_cut_card_reached());
-        
+
         shoe.shuffle();
         assert_eq!(shoe.index, 0);
 
@@ -271,7 +223,7 @@ mod tests {
         shoe.deal_card();
         assert!(shoe.is_cut_card_reached());
     }
-    
+
     #[test]
     #[ignore]
     fn print_first_few_cards_in_shuffled_shoe() {
@@ -287,7 +239,7 @@ mod tests {
             print!(" {:#?}", shoe.cards[i]);
         }
         println!();
-        
+
         shoe.shuffle_with_firsts(&firsts);
         print!("Shuffled:");
         for i in 0..10 {
