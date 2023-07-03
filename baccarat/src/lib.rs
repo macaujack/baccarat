@@ -1,14 +1,52 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+pub mod card;
+
+#[derive(Debug, Clone)]
+pub struct Rule {
+    pub number_of_decks: u32,
+    pub cut_card_proportion: f64,
+
+    pub payouts: Payouts,
+}
+
+#[derive(Debug, Clone)]
+pub struct Payouts {
+    pub player_win: f64,
+    pub banker_win: f64,
+    pub tie: f64,
+    
+    pub player_pair: f64,
+    pub banker_pair: f64,
+    pub perfect_pair: [f64; 2],
+    pub either_pair: f64,
+
+    pub bonus: [f64; 6], // bonus[0] stands for "win by 4".
+    pub bonus_natural_win: f64,
+    pub bonus_natural_tie: f64,
+}
+
+fn get_typical_rule() -> Rule {
+    Rule {
+        number_of_decks: 8,
+        cut_card_proportion: 0.9,
+
+        payouts: Payouts {
+            player_win: 1.0,
+            banker_win: 0.95,
+            tie: 8.0,
+            
+            player_pair: 11.0,
+            banker_pair: 11.0,
+            perfect_pair: [25.0, 200.0],
+            either_pair: 5.0,
+            
+            bonus: [1.0, 2.0, 4.0, 6.0, 10.0, 30.0],
+            bonus_natural_win: 1.0,
+            bonus_natural_tie: 0.0,
+        },
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
 }
