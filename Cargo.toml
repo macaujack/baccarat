@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "baccarat",
+    "baccarat_drivers",
+]
