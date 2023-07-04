@@ -52,6 +52,14 @@ impl Card {
         }
     }
 
+    pub fn to_bcr_value_index(&self) -> usize {
+        match self.value {
+            v @ 1..=9 => v as usize,
+            10..=13 => 0,
+            _ => unreachable!(),
+        }
+    }
+
     pub fn to_value_index(&self) -> usize {
         (self.value - 1) as usize
     }
