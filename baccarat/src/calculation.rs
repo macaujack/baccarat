@@ -1,4 +1,4 @@
-use crate::{card::Card, Rule};
+use crate::{card::Card, game::HandsBet, Rule};
 use std::cmp::Ordering;
 
 #[derive(Debug, Clone)]
@@ -84,6 +84,31 @@ pub struct Solution {
 }
 
 impl Solution {
+    pub fn get_max_main_side_bets(&self) -> ((HandsBet, f64), (HandsBet, f64)) {
+        let (mut max_main_bet, mut max_main_ex) =
+            (HandsBet::PlayerWin, self.sol_main.ex_player_win);
+        if max_main_ex < self.sol_main.ex_banker_win {
+            (max_main_bet, max_main_ex) = (HandsBet::BankerWin, self.sol_main.ex_banker_win);
+        }
+        if max_main_ex < self.sol_main.ex_tie {
+            (max_main_bet, max_main_ex) = (HandsBet::Tie, self.sol_main.ex_tie);
+        }
+
+        let (mut max_side_bet, mut max_side_ex) =
+            (HandsBet::PlayerUnsuitPair, self.sol_pair.ex_unsuit_pair);
+        if max_side_ex < self.sol_pair.ex_suit_pair {
+            (max_side_bet, max_side_ex) = (HandsBet::PerfectPair, self.sol_pair.ex_suit_pair);
+        }
+        if max_side_ex < self.sol_bonus.ex_player_bonus {
+            (max_side_bet, max_side_ex) = (HandsBet::PlayerBonus, self.sol_bonus.ex_player_bonus);
+        }
+        if max_side_ex < self.sol_bonus.ex_banker_bonus {
+            (max_side_bet, max_side_ex) = (HandsBet::BankerBonus, self.sol_bonus.ex_banker_bonus);
+        }
+
+        ((max_main_bet, max_main_ex), (max_side_bet, max_side_ex))
+    }
+
     fn calculate_ex_based_on_p(&mut self, rule: &Rule) {
         let payouts = &rule.payouts;
 
@@ -385,6 +410,7 @@ mod tests {
         Rule {
             number_of_decks: 8,
             cut_card_proportion: 0.9,
+            discard_at_start: true,
 
             payouts: Payouts {
                 player_win: 1.0,

@@ -2,7 +2,7 @@ use crate::{card::Card, Rule};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct Hand {
     pub initial: [Card; 2],
     pub third: Option<Card>,
@@ -13,15 +13,15 @@ impl Hand {
         if self.third.is_some() {
             return false;
         }
-        (self.initial[0].value + self.initial[1].value) % 10 >= 8
+        (self.initial[0].to_bcr_value_index() + self.initial[1].to_bcr_value_index()) % 10 >= 8
     }
 
     pub fn get_sum(&self) -> u8 {
-        let mut sum = self.initial[0].value + self.initial[1].value;
+        let mut sum = self.initial[0].to_bcr_value_index() + self.initial[1].to_bcr_value_index();
         if let Some(ref third_card) = self.third {
-            sum += third_card.value;
+            sum += third_card.to_bcr_value_index();
         }
-        sum % 10
+        (sum % 10) as u8
     }
 
     pub fn is_initial_unsuit_pair(&self) -> bool {
@@ -30,6 +30,20 @@ impl Hand {
 
     pub fn is_initial_suit_pair(&self) -> bool {
         self.initial[0] == self.initial[1]
+    }
+}
+
+impl std::fmt::Debug for Hand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(third) = self.third {
+            write!(
+                f,
+                "({:#?}, {:#?}, {:#?})",
+                self.initial[0], self.initial[1], third
+            )
+        } else {
+            write!(f, "({:#?}, {:#?}, __)", self.initial[0], self.initial[1])
+        }
     }
 }
 

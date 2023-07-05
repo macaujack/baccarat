@@ -1,0 +1,19 @@
+rule:
+  number_of_decks: 8
+  cut_card_proportion: 0.85
+  discard_at_start: true
+
+  payouts:
+    player_win: 1
+    banker_win: 0.95
+    tie: 8
+
+    unsuit_pair: 11
+    perfect_pair: [25, 200]
+
+    bonus_unnatural: [1, 2, 4, 6, 10, 30]
+    bonus_natural_win: 1
+    bonus_natural_tie: 0
+
+baccarat_simulator:
+  rounds_per_day: 1000

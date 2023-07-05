@@ -59,16 +59,18 @@ impl<'a, T: DealerProvider, U: GamblerProvider> Game<'a, T, U> {
                 self.dealer.start_new_shoe();
 
                 // Discard some cards.
-                self.discarded_card = self.get_card_from_dealer();
-                let discarded_cards = self.discarded_card.to_bcr_value_index();
-                let discarded_cards = if discarded_cards == 0 {
-                    10
-                } else {
-                    discarded_cards
-                } as u32;
-                self.cards_before_cut += discarded_cards;
-                self.gambler.on_discard(discarded_cards);
-                self.dealer.discard_cards(discarded_cards);
+                if self.rule.discard_at_start {
+                    self.discarded_card = self.get_card_from_dealer();
+                    let discarded_cards = self.discarded_card.to_bcr_value_index();
+                    let discarded_cards = if discarded_cards == 0 {
+                        10
+                    } else {
+                        discarded_cards
+                    } as u32;
+                    self.cards_before_cut += discarded_cards;
+                    self.gambler.on_discard(self.discarded_card);
+                    self.dealer.discard_cards(discarded_cards);
+                }
             }
 
             self.gambler.on_round_start();
@@ -101,12 +103,14 @@ impl<'a, T: DealerProvider, U: GamblerProvider> Game<'a, T, U> {
 
             self.round_result
                 .calculate_with_hands_and_bet(&self.player, &self.banker, unsafe { &*bets });
-            self.gambler.on_round_end(&self.round_result);
+            self.gambler
+                .on_round_end(&self.player, &self.banker, &self.round_result);
         }
     }
 
     fn get_card_from_dealer(&mut self) -> Card {
         let card = self.dealer.deal_card();
+        self.counter.remove_card(card);
         self.cards_before_cut += 1;
         if self.dealer.is_cut_card_reached() {
             self.gambler.on_cut_card_reached(self.cards_before_cut);
@@ -126,8 +130,8 @@ pub trait DealerProvider {
 pub trait GamblerProvider {
     fn place_bet(&mut self, solution: &Solution) -> &HashMap<HandsBet, i64>;
     fn on_new_shoe(&mut self);
-    fn on_discard(&mut self, cards: u32);
+    fn on_discard(&mut self, card: Card);
     fn on_round_start(&mut self);
-    fn on_round_end(&mut self, round_result: &RoundResult);
+    fn on_round_end(&mut self, player: &Hand, banker: &Hand, round_result: &RoundResult);
     fn on_cut_card_reached(&mut self, cards_before_cut: u32);
 }

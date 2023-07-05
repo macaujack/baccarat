@@ -6,6 +6,7 @@ pub mod game;
 pub struct Rule {
     pub number_of_decks: u32,
     pub cut_card_proportion: f64,
+    pub discard_at_start: bool,
 
     pub payouts: Payouts,
 }
