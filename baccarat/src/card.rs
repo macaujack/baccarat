@@ -37,6 +37,15 @@ impl std::fmt::Debug for Card {
     }
 }
 
+impl Default for Card {
+    fn default() -> Self {
+        Self {
+            suit: Suit::Diamond,
+            value: 1,
+        }
+    }
+}
+
 impl Card {
     pub fn new(suit: Suit, value: u8) -> Card {
         Card { suit, value }

@@ -1,3 +1,8 @@
+mod hands;
+
+pub use hands::{Hand, HandsBet, HandsResult, HandsResultBonus, RoundResult};
+use std::collections::HashMap;
+
 use crate::{
     calculation::{Counter, Solution},
     card::Card,
@@ -24,6 +29,12 @@ impl<T: DealerProvider, U: GamblerProvider> Game<T, U> {
         }
     }
 
+    pub fn start_game_loop(&mut self) {}
+
+    pub fn get_bcr_value_count(&self) -> &[u32; 10] {
+        self.counter.get_bcr_value_count()
+    }
+
     pub fn get_value_count(&self) -> &[u32; 13] {
         self.counter.get_value_count()
     }
@@ -35,13 +46,14 @@ impl<T: DealerProvider, U: GamblerProvider> Game<T, U> {
 
 pub trait DealerProvider {
     fn deal_card(&mut self) -> Card;
+    fn discard_cards(&mut self, cards: u32);
 }
 
 pub trait GamblerProvider {
-    fn place_bet(&mut self, solution: &Solution) -> i64;
-    /// This is the method to call when winning money. Money here contains
-    /// gambler's betting money. In another word, if you bet 100 on "Player Win"
-    /// (whose payout is 1:1) and the player wins, you win 200. If banker wins,
-    /// you win 0. If it's a tie, you win 100.
-    fn win_money(&mut self, money: i64);
+    fn place_bet(&mut self, solution: &Solution) -> &HashMap<HandsBet, i64>;
+    fn on_new_shoe(&mut self);
+    fn on_discard(&mut self, cards: u32);
+    fn on_round_start(&mut self);
+    fn on_round_end(&mut self, round_result: &RoundResult);
+    fn on_cut_card_reached(&mut self, number_of_dealt_cards: u32, cut_card_proportion: f64);
 }
