@@ -4,8 +4,8 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone, Default)]
 pub struct Hand {
-    initial: [Card; 2],
-    third: Option<Card>,
+    pub initial: [Card; 2],
+    pub third: Option<Card>,
 }
 
 impl Hand {

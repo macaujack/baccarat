@@ -1,6 +1,7 @@
 use crate::{card::Card, Rule};
 use std::cmp::Ordering;
 
+#[derive(Debug, Clone)]
 pub struct Solver<'a> {
     rule: &'a Rule,
     solution: Solution,
@@ -378,7 +379,27 @@ mod functional {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::get_typical_rule;
+    use crate::Payouts;
+
+    fn get_typical_rule() -> Rule {
+        Rule {
+            number_of_decks: 8,
+            cut_card_proportion: 0.9,
+
+            payouts: Payouts {
+                player_win: 1.0,
+                banker_win: 0.95,
+                tie: 8.0,
+
+                unsuit_pair: 11.0,
+                perfect_pair: [25.0, 200.0],
+
+                bonus_unnatural: [1.0, 2.0, 4.0, 6.0, 10.0, 30.0],
+                bonus_natural_win: 1.0,
+                bonus_natural_tie: 0.0,
+            },
+        }
+    }
 
     fn assert_float_equal(mut x: f64, mut y: f64) {
         const EPS: f64 = 0.0001;
