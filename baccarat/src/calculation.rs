@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{card::Card, game::HandsBet, Rule};
 use std::cmp::Ordering;
 
@@ -45,6 +47,22 @@ impl Counter {
         }
     }
 
+    pub fn with_card_count(card_count: &[u32; 52]) -> Self {
+        let mut counter = Self {
+            total: 0,
+            bcr_value_count: Default::default(),
+            value_count: Default::default(),
+            card_count: card_count.clone(),
+        };
+        for (i, value) in card_count.iter().enumerate() {
+            counter.total += *value;
+            let rem = i % 13;
+            counter.value_count[rem] += *value;
+            counter.bcr_value_count[(rem + 1) % 10] += *value;
+        }
+        counter
+    }
+
     pub fn add_card(&mut self, card: Card) {
         self.total += 1;
         self.bcr_value_count[card.to_bcr_value_index()] += 1;
@@ -76,7 +94,7 @@ impl Counter {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Solution {
     pub sol_main: SolutionMain,
     pub sol_pair: SolutionPair,
@@ -164,7 +182,7 @@ impl Solution {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SolutionMain {
     pub p_player_win: f64,
     pub ex_player_win: f64,
@@ -176,7 +194,7 @@ pub struct SolutionMain {
     pub ex_tie: f64,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SolutionPair {
     pub p_unsuit_pair: f64,
     pub ex_unsuit_pair: f64,
@@ -185,7 +203,7 @@ pub struct SolutionPair {
     pub ex_suit_pair: f64,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SolutionBonus {
     pub p_player_bonus_unnatural: [f64; 6],
     pub p_player_bonus_natural_win: f64,
@@ -212,7 +230,7 @@ pub static RULE_CHART: [[bool; 10]; 10] = [
     [S, S, S, S, S, S, S, S, S, S],
 ];
 
-mod functional {
+pub mod functional {
     use super::*;
 
     pub fn calculate(

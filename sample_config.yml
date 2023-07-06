@@ -18,3 +18,7 @@ rule:
 baccarat_simulator:
   rounds_per_day: 1000
   p_threshold: 0
+
+baccarat_solver_service:
+  listening_ip: 127.0.0.1 # Default to 127.0.0.1
+  listening_port: 8080 # Default to 8080

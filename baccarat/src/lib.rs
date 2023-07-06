@@ -1,8 +1,10 @@
+use serde::{Deserialize, Serialize};
+
 pub mod calculation;
 pub mod card;
 pub mod game;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Rule {
     pub number_of_decks: u32,
     pub cut_card_proportion: f64,
@@ -11,7 +13,7 @@ pub struct Rule {
     pub payouts: Payouts,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Payouts {
     pub player_win: f64,
     pub banker_win: f64,
