@@ -23,6 +23,8 @@ struct SimulatorGambler<'a> {
     bets: HashMap<HandsBet, i64>,
 
     rounds: u32,
+    main_bet_money: i64,
+    side_bet_money: i64,
 
     // Records for log
     max_bets: ((HandsBet, f64), (HandsBet, f64)),
@@ -43,6 +45,8 @@ impl<'a> SimulatorGambler<'a> {
             bets: HashMap::new(),
 
             rounds: 0,
+            main_bet_money: 200,
+            side_bet_money: 100,
 
             max_bets: (
                 (HandsBet::BankerWin, -f64::INFINITY),
@@ -119,14 +123,14 @@ impl<'a> GamblerProvider for SimulatorGambler<'a> {
         // If side bet's ex < main bet's ex, we don't consider side bets.
         if max_bets.1 .1 < max_bets.0 .1 {
             if max_bets.0 .1 > 0.0 {
-                self.bets.insert(max_bets.0 .0, 100);
+                self.bets.insert(max_bets.0 .0, self.main_bet_money);
             }
         }
         // If side bet's ex is greater, we may consider it.
         else {
             if 2.0 * max_bets.0 .1 + max_bets.1 .1 > 0.0 {
-                self.bets.insert(max_bets.0 .0, 200);
-                self.bets.insert(max_bets.1 .0, 100);
+                self.bets.insert(max_bets.0 .0, self.main_bet_money);
+                self.bets.insert(max_bets.1 .0, self.side_bet_money);
             }
         }
 
