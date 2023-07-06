@@ -10,7 +10,8 @@ use std::{mem::MaybeUninit, sync::RwLock};
 const DEFAULT_CONFIG_PATH: &str = "~/.baccarat.yml";
 
 #[derive(Debug, Parser)]
-#[command(author, about, long_about = None)]
+#[command(author = "Jack Y. <seigino.mikata@outlook.com>")]
+#[command(about = "A backend service to calculate probabilities and expectations in Baccarat.", long_about = None)]
 struct CommandLineArgs {
     /// The path of the config file
     #[arg(short, long, default_value_t = String::from(DEFAULT_CONFIG_PATH))]
