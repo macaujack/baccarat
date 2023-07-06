@@ -93,7 +93,7 @@ pub enum HandsResultBonus {
 }
 
 #[derive(Debug, Clone, Copy, Default)]
-pub struct RoundBetResult(HandsResult, i64);
+pub struct RoundBetResult(pub HandsResult, pub i64);
 
 #[derive(Debug, Clone)]
 pub struct RoundResult<'a> {

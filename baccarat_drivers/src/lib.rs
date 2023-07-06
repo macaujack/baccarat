@@ -38,6 +38,9 @@ pub struct ConfigRulePayouts {
 pub struct ConfigBaccaratSimulator {
     pub rounds_per_day: u32,
     pub p_threshold: f64,
+    pub main_bet_base: i64,
+    pub side_bet_base: i64,
+    pub main_bet_double_when_lose: bool,
 }
 
 /// Reads the content of a given config file and parses it to a Config.
