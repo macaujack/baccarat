@@ -49,6 +49,8 @@ impl std::fmt::Debug for Hand {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum HandsBet {
+    PlaceHolder,
+
     PlayerWin,
     Tie,
     BankerWin,
@@ -244,6 +246,8 @@ impl<'a> RoundResult<'a> {
                         }
                     }
                 }
+
+                HandsBet::PlaceHolder => panic!("You cannot bet on PlaceHolder!"),
             };
 
             self.details.insert(*hands_bet, bet_result);

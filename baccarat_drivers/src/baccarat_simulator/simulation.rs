@@ -113,7 +113,7 @@ impl<'a> GamblerProvider for SimulatorGambler<'a> {
     fn place_bet(&mut self, solution: &Solution) -> &HashMap<HandsBet, i64> {
         self.bets.clear();
 
-        let max_bets = solution.get_max_main_side_bets();
+        let max_bets = solution.get_best_main_side_bet(self.config.p_threshold);
         self.max_bets = max_bets;
 
         // If side bet's ex < main bet's ex, we don't consider side bets.

@@ -84,26 +84,46 @@ pub struct Solution {
 }
 
 impl Solution {
-    pub fn get_max_main_side_bets(&self) -> ((HandsBet, f64), (HandsBet, f64)) {
-        let (mut max_main_bet, mut max_main_ex) =
-            (HandsBet::PlayerWin, self.sol_main.ex_player_win);
-        if max_main_ex < self.sol_main.ex_banker_win {
-            (max_main_bet, max_main_ex) = (HandsBet::BankerWin, self.sol_main.ex_banker_win);
+    /// This function get the best main bet and side bet based on each bet's ex.
+    /// Note that not all bet is taken into consideration. We only care those
+    /// bets whose probabilities are greater than p_threshold.
+    pub fn get_best_main_side_bet(&self, p_threshold: f64) -> ((HandsBet, f64), (HandsBet, f64)) {
+        let (mut max_main_bet, mut max_main_ex) = (HandsBet::PlaceHolder, f64::MIN);
+        let (mut max_side_bet, mut max_side_ex) = (HandsBet::PlaceHolder, f64::MIN);
+        // Check main bets.
+        let s = &self.sol_main;
+        if s.p_player_win + s.p_tie > p_threshold && max_main_ex < s.ex_player_win {
+            (max_main_bet, max_main_ex) = (HandsBet::PlayerWin, s.ex_player_win);
         }
-        if max_main_ex < self.sol_main.ex_tie {
-            (max_main_bet, max_main_ex) = (HandsBet::Tie, self.sol_main.ex_tie);
+        if s.p_banker_win + s.p_tie > p_threshold && max_main_ex < s.ex_banker_win {
+            (max_main_bet, max_main_ex) = (HandsBet::BankerWin, s.ex_banker_win);
+        }
+        if s.p_tie > p_threshold && max_main_ex < s.ex_tie {
+            (max_main_bet, max_main_ex) = (HandsBet::Tie, s.ex_tie);
         }
 
-        let (mut max_side_bet, mut max_side_ex) =
-            (HandsBet::PlayerUnsuitPair, self.sol_pair.ex_unsuit_pair);
-        if max_side_ex < self.sol_pair.ex_suit_pair {
-            (max_side_bet, max_side_ex) = (HandsBet::PerfectPair, self.sol_pair.ex_suit_pair);
+        // Check side bets (pair).
+        let s = &self.sol_pair;
+        if s.p_unsuit_pair > p_threshold && max_side_ex < s.ex_unsuit_pair {
+            (max_side_bet, max_side_ex) = (HandsBet::PlayerUnsuitPair, s.ex_unsuit_pair);
         }
-        if max_side_ex < self.sol_bonus.ex_player_bonus {
-            (max_side_bet, max_side_ex) = (HandsBet::PlayerBonus, self.sol_bonus.ex_player_bonus);
+        if s.p_suit_pair[0] + s.p_suit_pair[1] > p_threshold && max_side_ex < s.ex_suit_pair {
+            (max_side_bet, max_side_ex) = (HandsBet::PerfectPair, s.ex_suit_pair);
         }
-        if max_side_ex < self.sol_bonus.ex_banker_bonus {
-            (max_side_bet, max_side_ex) = (HandsBet::BankerBonus, self.sol_bonus.ex_banker_bonus);
+
+        // Check side bets (bonus).
+        let s = &self.sol_bonus;
+        let p_player_unnatural: f64 = s.p_player_bonus_unnatural.iter().sum();
+        if s.p_bonus_natural_tie + s.p_player_bonus_natural_win + p_player_unnatural > p_threshold
+            && max_side_ex < s.ex_player_bonus
+        {
+            (max_side_bet, max_side_ex) = (HandsBet::PlayerBonus, s.ex_player_bonus);
+        }
+        let p_banker_unnatural: f64 = s.p_banker_bonus_unnatural.iter().sum();
+        if s.p_bonus_natural_tie + s.p_banker_bonus_natural_win + p_banker_unnatural > p_threshold
+            && max_side_ex < s.ex_banker_bonus
+        {
+            (max_side_bet, max_side_ex) = (HandsBet::BankerBonus, s.ex_banker_bonus);
         }
 
         ((max_main_bet, max_main_ex), (max_side_bet, max_side_ex))

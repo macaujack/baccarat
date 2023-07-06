@@ -37,6 +37,7 @@ pub struct ConfigRulePayouts {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfigBaccaratSimulator {
     pub rounds_per_day: u32,
+    pub p_threshold: f64,
 }
 
 /// Reads the content of a given config file and parses it to a Config.

@@ -17,3 +17,4 @@ rule:
 
 baccarat_simulator:
   rounds_per_day: 1000
+  p_threshold: 0
