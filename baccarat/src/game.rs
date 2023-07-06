@@ -4,41 +4,41 @@ pub use hands::{Hand, HandsBet, HandsResult, HandsResultBonus, RoundResult};
 use std::collections::HashMap;
 
 use crate::{
-    calculation::{Counter, Solution, Solver, RULE_CHART},
+    calculation::{Counter, Solution, RULE_CHART},
     card::Card,
     Rule,
 };
 
 #[derive(Debug, Clone)]
-pub struct Game<'a, T: DealerProvider, U: GamblerProvider> {
+pub struct Game<'a, D: DealerProvider, G: GamblerProvider, S: SolverProvider> {
     rule: &'a Rule,
     counter: Counter,
     player: Hand,
     banker: Hand,
-    solver: Solver<'a>,
     round_result: RoundResult<'a>,
 
-    dealer: T,
-    gambler: U,
+    dealer: D,
+    gambler: G,
+    solver: S,
 
     discarded_card: Card,
     should_start_new_shoe: bool,
     cards_before_cut: u32,
 }
 
-impl<'a, T: DealerProvider, U: GamblerProvider> Game<'a, T, U> {
-    pub fn new(rule: &'a Rule, dealer: T, gambler: U) -> Self {
+impl<'a, T: DealerProvider, U: GamblerProvider, S: SolverProvider> Game<'a, T, U, S> {
+    pub fn new(rule: &'a Rule, dealer: T, gambler: U, solver: S) -> Self {
         let number_of_decks = rule.number_of_decks;
         Self {
             rule,
             counter: Counter::new(number_of_decks),
             player: Default::default(),
             banker: Default::default(),
-            solver: Solver::new(rule),
             round_result: RoundResult::new(rule),
 
             dealer,
             gambler,
+            solver,
 
             discarded_card: Default::default(),
             should_start_new_shoe: true,
@@ -134,4 +134,8 @@ pub trait GamblerProvider {
     fn on_round_start(&mut self);
     fn on_round_end(&mut self, player: &Hand, banker: &Hand, round_result: &RoundResult);
     fn on_cut_card_reached(&mut self, cards_before_cut: u32);
+}
+
+pub trait SolverProvider {
+    fn solve(&mut self, counter: &Counter) -> &Solution;
 }

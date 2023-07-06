@@ -1,6 +1,8 @@
 use baccarat::calculation::Solution;
 use baccarat::card::{Card, Shoe};
-use baccarat::game::{DealerProvider, GamblerProvider, Game, Hand, HandsBet, RoundResult};
+use baccarat::game::{
+    DealerProvider, GamblerProvider, Game, Hand, HandsBet, RoundResult, SolverProvider,
+};
 use baccarat::Rule;
 use baccarat_drivers_lib::{ConfigBaccaratSimulator, MoneyStat};
 use std::cell::RefCell;
@@ -10,7 +12,8 @@ pub fn start_simulation(rule: &Rule, config: &ConfigBaccaratSimulator) {
     let firsts = RefCell::new(None);
     let dealer = SimulatorDealer::new(rule, &firsts);
     let gambler = SimulatorGambler::new(rule, config, &firsts);
-    let mut game = Game::new(rule, dealer, gambler);
+    let solver = SimulatorSolver::new(rule);
+    let mut game = Game::new(rule, dealer, gambler, solver);
     game.start_game_loop();
 }
 
@@ -186,5 +189,24 @@ impl<'a> DealerProvider for SimulatorDealer<'a> {
     }
     fn start_new_shoe(&mut self) {
         self.shoe.shuffle();
+    }
+}
+
+#[derive(Debug, Clone)]
+struct SimulatorSolver<'a> {
+    solver: baccarat::calculation::Solver<'a>,
+}
+
+impl<'a> SimulatorSolver<'a> {
+    fn new(rule: &'a Rule) -> Self {
+        Self {
+            solver: baccarat::calculation::Solver::new(rule),
+        }
+    }
+}
+
+impl<'a> SolverProvider for SimulatorSolver<'a> {
+    fn solve(&mut self, counter: &baccarat::calculation::Counter) -> &Solution {
+        self.solver.solve(counter)
     }
 }
