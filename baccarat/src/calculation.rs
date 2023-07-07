@@ -94,7 +94,7 @@ impl Counter {
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct Solution {
     pub sol_main: SolutionMain,
     pub sol_pair: SolutionPair,
@@ -182,7 +182,7 @@ impl Solution {
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct SolutionMain {
     pub p_player_win: f64,
     pub ex_player_win: f64,
@@ -194,7 +194,7 @@ pub struct SolutionMain {
     pub ex_tie: f64,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct SolutionPair {
     pub p_unsuit_pair: f64,
     pub ex_unsuit_pair: f64,
@@ -203,7 +203,7 @@ pub struct SolutionPair {
     pub ex_suit_pair: f64,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct SolutionBonus {
     pub p_player_bonus_unnatural: [f64; 6],
     pub p_player_bonus_natural_win: f64,
