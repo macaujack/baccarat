@@ -20,6 +20,7 @@ pub struct Payouts {
     pub tie: f64,
 
     pub unsuit_pair: f64,
+    pub either_pair: f64,
     pub perfect_pair: [f64; 2],
 
     pub bonus_unnatural: [f64; 6], // bonus[0] stands for "win by 4".

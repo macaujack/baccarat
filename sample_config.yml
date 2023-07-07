@@ -9,6 +9,7 @@ rule:
     tie: 8
 
     unsuit_pair: 11
+    either_pair: 5
     perfect_pair: [25, 200]
 
     bonus_unnatural: [1, 2, 4, 6, 10, 30]

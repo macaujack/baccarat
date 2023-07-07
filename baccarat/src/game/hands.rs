@@ -57,6 +57,7 @@ pub enum HandsBet {
 
     PlayerUnsuitPair,
     BankerUnsuitPair,
+    EitherPair,
     PerfectPair,
 
     PlayerBonus,
@@ -73,6 +74,7 @@ pub enum HandsResult {
 
     PlayerUnsuitPair,
     BankerUnsuitPair,
+    EitherPair,
     PerfectPair(u8), // Param can be 1 or 2.
 
     PlayerBonus(HandsResultBonus),
@@ -179,7 +181,15 @@ impl<'a> RoundResult<'a> {
                         RoundBetResult(HandsResult::Lose, -money)
                     }
                 }
-                // Side bet 3: Perfect pair
+                // Side bet 3: Either pair
+                HandsBet::EitherPair => {
+                    if player.is_initial_unsuit_pair() || banker.is_initial_unsuit_pair() {
+                        RoundBetResult(HandsResult::EitherPair, f(*money, payouts.either_pair))
+                    } else {
+                        RoundBetResult(HandsResult::Lose, -money)
+                    }
+                }
+                // Side bet 4: Perfect pair
                 HandsBet::PerfectPair => {
                     let player_perfect = if player.is_initial_suit_pair() { 1 } else { 0 };
                     let banker_perfect = if banker.is_initial_suit_pair() { 1 } else { 0 };
@@ -192,7 +202,7 @@ impl<'a> RoundResult<'a> {
                         _ => unreachable!(),
                     }
                 }
-                // Side bet 4: Player bonus
+                // Side bet 5: Player bonus
                 HandsBet::PlayerBonus => {
                     if player_sum < banker_sum {
                         RoundBetResult(HandsResult::Lose, -money)
@@ -219,7 +229,7 @@ impl<'a> RoundResult<'a> {
                         }
                     }
                 }
-                // Side bet 5: Banker bonus
+                // Side bet 6: Banker bonus
                 HandsBet::BankerBonus => {
                     if player_sum > banker_sum {
                         RoundBetResult(HandsResult::Lose, -money)

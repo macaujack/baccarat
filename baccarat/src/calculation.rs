@@ -125,6 +125,9 @@ impl Solution {
         if s.p_unsuit_pair > p_threshold && max_side_ex < s.ex_unsuit_pair {
             (max_side_bet, max_side_ex) = (HandsBet::PlayerUnsuitPair, s.ex_unsuit_pair);
         }
+        if s.p_either_pair > p_threshold && max_side_ex < s.ex_either_pair {
+            (max_side_bet, max_side_ex) = (HandsBet::EitherPair, s.ex_either_pair);
+        }
         if s.p_suit_pair[0] + s.p_suit_pair[1] > p_threshold && max_side_ex < s.ex_suit_pair {
             (max_side_bet, max_side_ex) = (HandsBet::PerfectPair, s.ex_suit_pair);
         }
@@ -159,6 +162,7 @@ impl Solution {
         // Calculate solution for pair bets.
         let s = &mut self.sol_pair;
         s.ex_unsuit_pair = s.p_unsuit_pair * payouts.unsuit_pair - (1.0 - s.p_unsuit_pair);
+        s.ex_either_pair = s.p_either_pair * payouts.either_pair - (1.0 - s.p_either_pair);
         s.ex_suit_pair = s.p_suit_pair[0] * payouts.perfect_pair[0]
             + s.p_suit_pair[1] * payouts.perfect_pair[1]
             - (1.0 - s.p_suit_pair[0] - s.p_suit_pair[1]);
@@ -198,6 +202,9 @@ pub struct SolutionMain {
 pub struct SolutionPair {
     pub p_unsuit_pair: f64,
     pub ex_unsuit_pair: f64,
+
+    pub p_either_pair: f64,
+    pub ex_either_pair: f64,
 
     pub p_suit_pair: [f64; 2],
     pub ex_suit_pair: f64,
@@ -243,7 +250,7 @@ pub mod functional {
     ) {
         *solution = Default::default();
 
-        // Step 1: Calculate numbers of main bets and bonus bets.
+        // Step 1: Calculate probabilities of main bets and bonus bets.
         let bcr_counter = &mut counter.bcr_value_count;
         let total_count = counter.total;
         for p0 in 0..=9 {
@@ -306,9 +313,7 @@ pub mod functional {
                             // initial sum is also 6 or 7, then banker doesn't draw a
                             // card either. Otherwise banker draws a card.
                             if banker_sum >= 6 {
-                                add_numbers_of_unnatural_to_solution(
-                                    player_sum, banker_sum, solution, p,
-                                );
+                                add_p_of_unnatural_to_solution(player_sum, banker_sum, solution, p);
                             } else {
                                 deal_final_banker_card_loop(
                                     bcr_counter,
@@ -345,7 +350,7 @@ pub mod functional {
                                         solution,
                                     );
                                 } else {
-                                    add_numbers_of_unnatural_to_solution(
+                                    add_p_of_unnatural_to_solution(
                                         player_sum, banker_sum, solution, p,
                                     );
                                 }
@@ -363,11 +368,43 @@ pub mod functional {
             bcr_counter[p0] += 1;
         }
 
-        // Step 2: Calculate numbers of pair bets.
+        // Step 2: Calculate probabilities of pair bets.
         let total_pairs = (counter.total * (counter.total - 1)) as f64;
         for count in counter.value_count {
             solution.sol_pair.p_unsuit_pair += (count * count.wrapping_sub(1)) as f64 / total_pairs;
         }
+
+        let total_quads = {
+            let tot = counter.total as u128;
+            tot * (tot - 1) * (tot - 2) * (tot - 3)
+        } as f64;
+        let either_pair = {
+            let mut num1 = 0u128;
+            let mut num2 = 0u128;
+            for i in 0..13 {
+                let count1 = counter.value_count[i] as u128;
+                if count1 <= 1 {
+                    continue;
+                }
+                let res = count1 * (count1 - 1);
+                counter.value_count[i] -= 2;
+
+                for j in 0..13 {
+                    let count2 = counter.value_count[j] as u128;
+                    if count2 <= 1 {
+                        continue;
+                    }
+                    let res1 = res * count2 * (counter.total - 2 - counter.value_count[j]) as u128;
+                    num1 += res1;
+                    let res2 = res * count2 * (count2 - 1);
+                    num2 += res2;
+                }
+
+                counter.value_count[i] += 2;
+            }
+            num1 * 2 + num2
+        };
+        solution.sol_pair.p_either_pair = either_pair as f64 / total_quads;
 
         let card_count = &mut counter.card_count;
         for i in 0..52 {
@@ -407,11 +444,11 @@ pub mod functional {
             }
             let p = p * bcr_counter[card] as f64 / total_count as f64;
             let banker_sum = (banker_sum + card) % 10;
-            add_numbers_of_unnatural_to_solution(player_sum, banker_sum, solution, p);
+            add_p_of_unnatural_to_solution(player_sum, banker_sum, solution, p);
         }
     }
 
-    fn add_numbers_of_unnatural_to_solution(
+    fn add_p_of_unnatural_to_solution(
         player_sum: usize,
         banker_sum: usize,
         solution: &mut Solution,
@@ -456,6 +493,7 @@ mod tests {
                 tie: 8.0,
 
                 unsuit_pair: 11.0,
+                either_pair: 5.0,
                 perfect_pair: [25.0, 200.0],
 
                 bonus_unnatural: [1.0, 2.0, 4.0, 6.0, 10.0, 30.0],
@@ -480,6 +518,7 @@ mod tests {
         const EX_PLAYER_WIN: f64 = -0.012351;
         const EX_TIE: f64 = -0.143596;
         const RTP_UNSUIT_PAIR: f64 = 0.8964;
+        const RTP_EITHER_PAIR: f64 = 0.8629;
         const RTP_PERFECT_PAIR: f64 = 0.9195;
         const RTP_PLAYER_BONUS: f64 = 0.9735;
         const RTP_BANKER_BONUS: f64 = 0.9063;
@@ -494,6 +533,7 @@ mod tests {
         assert_float_equal(solution.sol_main.ex_player_win, EX_PLAYER_WIN);
         assert_float_equal(solution.sol_main.ex_tie, EX_TIE);
         assert_float_equal(1.0 + solution.sol_pair.ex_unsuit_pair, RTP_UNSUIT_PAIR);
+        assert_float_equal(1.0 + solution.sol_pair.ex_either_pair, RTP_EITHER_PAIR);
         assert_float_equal(1.0 + solution.sol_pair.ex_suit_pair, RTP_PERFECT_PAIR);
         assert_float_equal(1.0 + solution.sol_bonus.ex_player_bonus, RTP_PLAYER_BONUS);
         assert_float_equal(1.0 + solution.sol_bonus.ex_banker_bonus, RTP_BANKER_BONUS);
