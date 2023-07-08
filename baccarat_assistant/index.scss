@@ -49,12 +49,16 @@ div {
 }
 
 #insights table {
-    margin: 0 10px;
+    margin: 5px 10px;
 }
 
 #insights th,
 #insights td {
     padding: 2px;
+}
+
+#suggestion th {
+    width: 80px;
 }
 
 #stat2 th,
@@ -102,6 +106,6 @@ div {
     }
 
     #insights table {
-        margin: 0 auto;
+        margin: 5px auto;
     }
 }
