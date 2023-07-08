@@ -88,6 +88,46 @@ div {
     white-space: nowrap;
 }
 
+#help_bg {
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: block;
+}
+
+#help_content {
+    background-color: white;
+    margin: 2% auto;
+    padding: 5px;
+    border: 1px solid #888888;
+    width: 60%;
+    display: block;
+}
+
+#help_content div {
+    display: block;
+}
+
+#help_content h1 {
+    font-size: 17px;
+    font-weight: bold;
+    margin-top: 5px;
+}
+
+#help_content h2 {
+    font-size: 12px;
+    font-weight: bold;
+}
+
+#help_content p {
+    font-size: 8px;
+}
+
 @media (max-width: 600px) and (orientation: portrait) {
     #cards {
         width: 100%;

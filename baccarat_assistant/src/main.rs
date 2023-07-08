@@ -1,3 +1,4 @@
+mod help;
 mod insights;
 mod undolist;
 
@@ -31,6 +32,7 @@ fn App() -> Html {
     let retry_times = use_state(|| 1u32);
     let solution: UseStateHandle<Solution> = use_state(|| Default::default());
     let undo_list = use_state(|| UndoList::new());
+    let show_help = use_state(|| false);
 
     // Effect for (counter_try, retry_times) -> (solution, is_requesting, hint, counter_display, undo_list)
     {
@@ -248,18 +250,37 @@ fn App() -> Html {
         }
     };
 
+    let onclick_help = {
+        let show_help = show_help.clone();
+        move |_| {
+            show_help.set(true);
+        }
+    };
+
+    let onclose_help = {
+        let show_help = show_help.clone();
+        move |_| {
+            show_help.set(false);
+        }
+    };
+
     html! {
         <>
             {cards}
             <div id="hint" class={hint_cls}>{hint_msg}</div>
 
             <div id="control_buttons">
-                <button id="reset" title="Reset" type="button" onclick={Callback::from(onclick_reset)}>{"↻"}</button>
                 <button id="undo" title="Undo" type="button" onclick={Callback::from(onclick_undo)}>{"↶"}</button>
                 <button id="redo" title="Redo" type="button" onclick={Callback::from(onclick_redo)}>{"↷"}</button>
+                <button id="reset" title="Reset" type="button" onclick={Callback::from(onclick_reset)}>{"↻"}</button>
+                <button id="help" title="Help" type="button" onclick={Callback::from(onclick_help)}>{"?"}</button>
             </div>
 
             <insights::InsightsDiv solution={(*solution).clone()} />
+
+            if *show_help {
+                <help::HelpDiv on_close={Callback::from(onclose_help)} />
+            }
         </>
     }
 }
@@ -364,5 +385,6 @@ fn convert_name_to_html(
 }
 
 fn main() {
+    yew::set_event_bubbling(false);
     yew::Renderer::<App>::new().render();
 }
