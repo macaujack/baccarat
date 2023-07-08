@@ -29,31 +29,32 @@ div {
     height: 26px;
     font-size: 15px;
     color: inherit;
-    margin-bottom: 2;
+    margin-bottom: 2px;
 }
 
 #insights {
-    width: fit-content;
+    justify-content: center;
 }
 
-#stat table,
-#stat th,
-#stat td {
+#insights table,
+#insights th,
+#insights td {
     border: 1px solid black;
     border-collapse: collapse;
 }
 
-#stat table {
+#insights {
+    flex-wrap: wrap;
     font-size: 8px;
 }
 
-#stat th,
-#stat td {
-    padding: 2px;
+#insights table {
+    margin: 0 10px;
 }
 
-#stat2 {
-    margin-left: 20px;
+#insights th,
+#insights td {
+    padding: 2px;
 }
 
 #stat2 th,
@@ -70,4 +71,37 @@ div {
     height: 20px;
     font-size: 14px;
     margin: 0 4px;
+}
+
+@media (max-width: 600px) and (orientation: portrait) {
+    #cards {
+        width: 100%;
+        font-size: 3vw;
+    }
+
+    .card_row {
+        flex-wrap: wrap;
+    }
+
+    .card_info {
+        width: 13%;
+        margin: 0 auto;
+    }
+
+    .card_info button {
+        width: 100%;
+        height: initial;
+        aspect-ratio: 4/3;
+        font-size: 4vw;
+        color: inherit;
+        margin-bottom: 2px;
+    }
+
+    #insights {
+        font-size: 1.7vw;
+    }
+
+    #insights table {
+        margin: 0 auto;
+    }
 }
