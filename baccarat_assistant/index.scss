@@ -32,6 +32,16 @@ div {
     margin-bottom: 2px;
 }
 
+#hint {
+    color: rgb(216, 167, 7);
+    font-size: 12px;
+    justify-content: center;
+}
+
+.invisible {
+    visibility: hidden;
+}
+
 #insights {
     justify-content: center;
 }

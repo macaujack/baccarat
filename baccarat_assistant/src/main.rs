@@ -19,13 +19,82 @@ const API_SOLVE: &str = "/api/solve";
 #[function_component]
 fn App() -> Html {
     let number_of_decks = use_state(|| 8);
-    let counter = use_state(|| vec![8; 52]);
-    let solution = use_solution((*counter).clone());
+    let counter_display = use_state(|| vec![8; 52]);
+    let hint = use_state(|| String::from(""));
+    let is_requesting = use_state(|| false);
+    let counter_try = use_state(|| vec![8; 52]);
+    let retry_times = use_state(|| 1u32);
+    let solution: UseStateHandle<Solution> = use_state(|| Default::default());
 
-    // Initialize from
+    // Effect for (counter_try, retry_times) -> (solution, is_requesting, hint, counter_display)
+    {
+        let solution = solution.clone();
+        let counter_try = counter_try.clone();
+        let counter_display = counter_display.clone();
+        let retry_times = retry_times.clone();
+        let hint = hint.clone();
+        let is_requesting = is_requesting.clone();
+
+        let counter_try_clone = counter_try.clone();
+        let retry_times_clone = retry_times.clone();
+
+        let fetching = async move {
+            is_requesting.set(true);
+            let response = gloo_net::http::Request::post(API_SOLVE)
+                .json(&*counter_try)
+                .unwrap()
+                .send()
+                .await;
+            is_requesting.set(false);
+
+            if let Err(ref e) = response {
+                hint.set(format!(
+                    "({}) Cannot get response from server: {}",
+                    *retry_times,
+                    e.to_string()
+                ));
+                return;
+            }
+
+            let response = response.unwrap();
+            if !response.ok() {
+                hint.set(format!(
+                    "({}) Statuc {}: {}",
+                    *retry_times,
+                    response.status(),
+                    response.status_text()
+                ));
+                return;
+            }
+
+            retry_times.set(0);
+
+            let fetched_solution = response.json().await.unwrap();
+            solution.set(fetched_solution);
+
+            counter_display.set((*counter_try).clone());
+            if let Err(_) = <LocalStorage as Storage>::set(COUNTER, (*counter_try).clone()) {
+                panic!("Cannot set local storage!");
+            }
+        };
+
+        let retry_times_inner = *retry_times_clone;
+        use_effect_with_deps(
+            move |_| {
+                if *retry_times_clone == 0 {
+                    return;
+                }
+                wasm_bindgen_futures::spawn_local(fetching);
+            },
+            ((*counter_try_clone).clone(), retry_times_inner),
+        );
+    }
+
+    // Initialize from local storage.
     {
         let number_of_decks = number_of_decks.clone();
-        let counter = counter.clone();
+        let counter_display = counter_display.clone();
+        let counter_try = counter_try.clone();
         use_effect_with_deps(
             move |_| {
                 gloo_console::info!("Recovering from local storage");
@@ -49,7 +118,10 @@ fn App() -> Html {
                 }
 
                 match <LocalStorage as Storage>::get::<Vec<u32>>(COUNTER) {
-                    Ok(v) => counter.set(v),
+                    Ok(v) => {
+                        counter_display.set(v.clone());
+                        counter_try.set(v);
+                    }
                     Err(_) => {
                         let msg =
                             format!("'{}' not found in local storage. Default is used", COUNTER);
@@ -73,12 +145,26 @@ fn App() -> Html {
             card_names[i][j] = format!("{}{}", SUIT_EMOJIS[i], VALUE_CHARS[j]);
         }
     }
-    let cards = convert_all_cards_to_html(&card_names, &counter);
+    let cards = convert_all_cards_to_html(
+        &card_names,
+        counter_display.clone(),
+        counter_try.clone(),
+        hint.clone(),
+        is_requesting.clone(),
+        retry_times.clone(),
+    );
+
+    let (hint_msg, hint_cls) = if hint.len() == 0 {
+        (String::from("x"), "invisible")
+    } else {
+        ((*hint).clone(), "")
+    };
 
     html! {
         <>
             {cards}
-            <insights::InsightsDiv solution={solution} />
+            <div id="hint" class={hint_cls}>{hint_msg}</div>
+            <insights::InsightsDiv solution={(*solution).clone()} />
 
             <div id="control_buttons">
                 <button id="reset" type="button">{"↻"}</button>
@@ -89,44 +175,25 @@ fn App() -> Html {
     }
 }
 
-#[hook]
-fn use_solution(counter: Vec<u32>) -> Solution {
-    let solution: UseStateHandle<Solution> = use_state(|| Default::default());
-
-    let solution_clone = solution.clone();
-    let counter_clone = counter.clone();
-    // TODO: Disable user to perform any operation until request is finished.
-    let fetching = async move {
-        let fetched_solution: Solution = gloo_net::http::Request::post(API_SOLVE)
-            .json(&counter_clone)
-            .unwrap()
-            .send()
-            .await
-            .unwrap()
-            .json()
-            .await
-            .unwrap();
-        solution_clone.set(fetched_solution);
-    };
-
-    use_effect_with_deps(
-        |_| {
-            wasm_bindgen_futures::spawn_local(fetching);
-        },
-        counter,
-    );
-
-    (*solution).clone()
-}
-
 fn convert_all_cards_to_html(
     card_names: &[[String; 13]; 4],
-    counter: &UseStateHandle<Vec<u32>>,
+    counter_display: UseStateHandle<Vec<u32>>,
+    counter_try: UseStateHandle<Vec<u32>>,
+    hint: UseStateHandle<String>,
+    is_requesting: UseStateHandle<bool>,
+    retry_times: UseStateHandle<u32>,
 ) -> Html {
-    // let rows = card_names.iter().map(convert_row_to_html).collect::<Html>();
     let mut rows = Vec::with_capacity(4);
     for (i, row) in card_names.iter().enumerate() {
-        rows.push(convert_row_to_html(row, &counter, i));
+        rows.push(convert_row_to_html(
+            row,
+            counter_display.clone(),
+            counter_try.clone(),
+            i,
+            hint.clone(),
+            is_requesting.clone(),
+            retry_times.clone(),
+        ));
     }
     html! {
         <div id="cards">
@@ -137,12 +204,24 @@ fn convert_all_cards_to_html(
 
 fn convert_row_to_html(
     row: &[String; 13],
-    counter: &UseStateHandle<Vec<u32>>,
+    counter_display: UseStateHandle<Vec<u32>>,
+    counter_try: UseStateHandle<Vec<u32>>,
     row_number: usize,
+    hint: UseStateHandle<String>,
+    is_requesting: UseStateHandle<bool>,
+    retry_times: UseStateHandle<u32>,
 ) -> Html {
     let mut cards = Vec::with_capacity(13);
     for (i, name) in row.iter().enumerate() {
-        cards.push(convert_name_to_html(name, counter, row_number * 13 + i));
+        cards.push(convert_name_to_html(
+            name,
+            counter_display.clone(),
+            counter_try.clone(),
+            row_number * 13 + i,
+            hint.clone(),
+            is_requesting.clone(),
+            retry_times.clone(),
+        ));
     }
 
     let css_class = if row[0].starts_with(SUIT_EMOJIS[0]) || row[0].starts_with(SUIT_EMOJIS[2]) {
@@ -159,27 +238,38 @@ fn convert_row_to_html(
 
 fn convert_name_to_html(
     name: &String,
-    counter: &UseStateHandle<Vec<u32>>,
+    counter_display: UseStateHandle<Vec<u32>>,
+    counter_try: UseStateHandle<Vec<u32>>,
     card_index: usize,
+    hint: UseStateHandle<String>,
+    is_requesting: UseStateHandle<bool>,
+    retry_times: UseStateHandle<u32>,
 ) -> Html {
-    let counter_clone = counter.clone();
+    let already_zero = format!("The number of {} is already ZERO!!", name);
+    let requesting_error = String::from("Waiting for server response. Can't send request again.");
+    let counter_display_preserved = counter_display.clone();
     let onclick = move |_| {
-        if counter_clone[card_index] == 0 {
-            // TODO: Show hint message at frontend.
+        if *is_requesting {
+            hint.set(requesting_error.clone());
             return;
         }
-        let mut new_counter = (*counter_clone).clone();
-        new_counter[card_index] -= 1;
-        counter_clone.set(new_counter.clone());
-        if let Err(_) = <LocalStorage as Storage>::set(COUNTER, new_counter) {
-            panic!("Cannot set local storage!");
+        if counter_display[card_index] == 0 {
+            hint.set(already_zero.clone());
+            return;
         }
+        if hint.len() != 0 {
+            hint.set(String::from(""));
+        }
+        let mut new_counter = (*counter_display).clone();
+        new_counter[card_index] -= 1;
+        counter_try.set(new_counter);
+        retry_times.set(*retry_times + 1);
     };
 
     html! {
         <div class="card_info">
             <button type="button" onclick={Callback::from(onclick)}>{name}</button>
-            {counter[card_index]}
+            {counter_display_preserved[card_index]}
         </div>
     }
 }
