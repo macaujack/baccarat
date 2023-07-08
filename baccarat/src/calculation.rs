@@ -58,7 +58,11 @@ impl Counter {
             counter.total += *value;
             let rem = i % 13;
             counter.value_count[rem] += *value;
-            counter.bcr_value_count[(rem + 1) % 10] += *value;
+            let idx = match i % 13 {
+                v @ 0..=8 => v + 1,
+                _ => 0,
+            };
+            counter.bcr_value_count[idx] += *value;
         }
         counter
     }
