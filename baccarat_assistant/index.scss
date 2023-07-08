@@ -42,6 +42,18 @@ div {
     visibility: hidden;
 }
 
+#control_buttons {
+    margin-top: 5px;
+    justify-content: center;
+}
+
+#control_buttons button {
+    width: 20px;
+    height: 20px;
+    font-size: 14px;
+    margin: 0 4px;
+}
+
 #insights {
     justify-content: center;
 }
@@ -74,17 +86,6 @@ div {
 #stat2 th,
 #stat2 td {
     white-space: nowrap;
-}
-
-#control_buttons {
-    margin-left: 30%;
-}
-
-#control_buttons button {
-    width: 20px;
-    height: 20px;
-    font-size: 14px;
-    margin: 0 4px;
 }
 
 @media (max-width: 600px) and (orientation: portrait) {

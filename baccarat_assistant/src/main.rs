@@ -1,4 +1,5 @@
 mod insights;
+mod undolist;
 
 use baccarat::calculation::Solution;
 use gloo_console;
@@ -16,6 +17,10 @@ const COUNTER: &str = "counter";
 
 const API_SOLVE: &str = "/api/solve";
 
+#[derive(Debug, Clone)]
+struct UndoListItem(Vec<u32>, Solution);
+type UndoList = undolist::UndoList<UndoListItem, 100>;
+
 #[function_component]
 fn App() -> Html {
     let number_of_decks = use_state(|| 8);
@@ -25,8 +30,9 @@ fn App() -> Html {
     let counter_try = use_state(|| vec![8; 52]);
     let retry_times = use_state(|| 1u32);
     let solution: UseStateHandle<Solution> = use_state(|| Default::default());
+    let undo_list = use_state(|| UndoList::new());
 
-    // Effect for (counter_try, retry_times) -> (solution, is_requesting, hint, counter_display)
+    // Effect for (counter_try, retry_times) -> (solution, is_requesting, hint, counter_display, undo_list)
     {
         let solution = solution.clone();
         let counter_try = counter_try.clone();
@@ -34,6 +40,7 @@ fn App() -> Html {
         let retry_times = retry_times.clone();
         let hint = hint.clone();
         let is_requesting = is_requesting.clone();
+        let undo_list = undo_list.clone();
 
         let counter_try_clone = counter_try.clone();
         let retry_times_clone = retry_times.clone();
@@ -69,8 +76,14 @@ fn App() -> Html {
 
             retry_times.set(0);
 
-            let fetched_solution = response.json().await.unwrap();
+            let fetched_solution: Solution = response.json().await.unwrap();
+            let mut new_undo_list = (*undo_list).clone();
+            new_undo_list.append(UndoListItem(
+                (*counter_try).clone(),
+                fetched_solution.clone(),
+            ));
             solution.set(fetched_solution);
+            undo_list.set(new_undo_list);
 
             counter_display.set((*counter_try).clone());
             if let Err(_) = <LocalStorage as Storage>::set(COUNTER, (*counter_try).clone()) {
@@ -160,17 +173,93 @@ fn App() -> Html {
         ((*hint).clone(), "")
     };
 
+    let onclick_undo = {
+        let undo_list = undo_list.clone();
+        let hint = hint.clone();
+        let counter_display = counter_display.clone();
+        let solution = solution.clone();
+        move |_| {
+            let mut new_undo_list = (*undo_list).clone();
+            let prev_state = new_undo_list.undo();
+            if prev_state.is_none() {
+                hint.set(String::from("Cannot undo anymore"));
+                return;
+            }
+            if hint.len() != 0 {
+                hint.set(String::from(""));
+            }
+            let prev_state = prev_state.unwrap();
+            undo_list.set(new_undo_list);
+
+            if let Err(_) = <LocalStorage as Storage>::set(COUNTER, prev_state.0.clone()) {
+                panic!("Cannot set local storage!");
+            }
+            counter_display.set(prev_state.0);
+            solution.set(prev_state.1);
+        }
+    };
+
+    let onclick_redo = {
+        let undo_list = undo_list.clone();
+        let hint = hint.clone();
+        let counter_display = counter_display.clone();
+        let solution = solution.clone();
+        move |_| {
+            let mut new_undo_list = (*undo_list).clone();
+            let next_state = new_undo_list.redo();
+            if next_state.is_none() {
+                hint.set(String::from("Cannot redo anymore"));
+                return;
+            }
+            if hint.len() != 0 {
+                hint.set(String::from(""));
+            }
+            let next_state = next_state.unwrap();
+            undo_list.set(new_undo_list);
+
+            if let Err(_) = <LocalStorage as Storage>::set(COUNTER, next_state.0.clone()) {
+                panic!("Cannot set local storage!");
+            }
+            counter_display.set(next_state.0);
+            solution.set(next_state.1);
+        }
+    };
+
+    let onclick_reset = {
+        let number_of_decks = number_of_decks.clone();
+        let counter_try = counter_try.clone();
+        let hint = hint.clone();
+        let is_requesting = is_requesting.clone();
+        let retry_times = retry_times.clone();
+
+        move |_| {
+            if *is_requesting {
+                hint.set(String::from(
+                    "Waiting for server response. Can't send request again",
+                ));
+                return;
+            }
+            if hint.len() != 0 {
+                hint.set(String::from(""));
+            }
+            let new_counter = vec![*number_of_decks; 52];
+            counter_try.set(new_counter);
+            retry_times.set(*retry_times + 1);
+        }
+    };
+
     html! {
         <>
             {cards}
             <div id="hint" class={hint_cls}>{hint_msg}</div>
-            <insights::InsightsDiv solution={(*solution).clone()} />
 
             <div id="control_buttons">
-                <button id="reset" type="button">{"↻"}</button>
-                <button id="undo" type="button">{"↶"}</button>
-                <button id="redo" type="button">{"↷"}</button>
+                <button id="reset" title="Reset" type="button" onclick={Callback::from(onclick_reset)}>{"↻"}</button>
+                <button id="undo" title="Undo" type="button" onclick={Callback::from(onclick_undo)}>{"↶"}</button>
+                <button id="redo" title="Redo" type="button" onclick={Callback::from(onclick_redo)}>{"↷"}</button>
             </div>
+
+            <insights::InsightsDiv solution={(*solution).clone()} />
         </>
     }
 }
