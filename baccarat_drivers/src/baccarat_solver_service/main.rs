@@ -5,14 +5,13 @@ use baccarat::{
 };
 use baccarat_drivers_lib::parse_config_from_file;
 use clap::Parser;
+use rust_embed::RustEmbed;
 use std::{mem::MaybeUninit, sync::RwLock};
 
 #[cfg(feature = "embed_website_assets")]
 use actix_web::get;
 #[cfg(feature = "embed_website_assets")]
 use mime_guess;
-#[cfg(feature = "embed_website_assets")]
-use rust_embed::RustEmbed;
 
 const DEFAULT_CONFIG_PATH: &str = "~/.baccarat.yml";
 
@@ -97,17 +96,30 @@ async fn dist(path: web::Path<String>) -> impl Responder {
     handle_embedded_file(path.as_str())
 }
 
+#[derive(RustEmbed)]
+#[folder = "../"]
+#[include = "sample_config.yml"]
+struct SampleConfig;
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let mut args = CommandLineArgs::parse();
     if args.config == DEFAULT_CONFIG_PATH {
         let home_dir = home::home_dir().expect("Cannot find home directory");
         let config_file_path = home_dir.join(".baccarat.yml");
-        if !config_file_path.exists() {
-            panic!("Config file not exists");
-        }
         if config_file_path.is_dir() {
             panic!("This should be a path rather than a directory");
+        }
+        if !config_file_path.exists() {
+            println!(
+                "Config file not exists. Creating a default config at {}",
+                config_file_path.display()
+            );
+            let sample_config = SampleConfig::get("sample_config.yml").unwrap();
+            let sample_config = sample_config.data.into_owned();
+            if let Err(e) = std::fs::write(&config_file_path, sample_config) {
+                println!("Cannot create config file: {}", e);
+            }
         }
         args.config = String::from(config_file_path.to_str().unwrap());
     }
