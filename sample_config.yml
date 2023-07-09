@@ -1,6 +1,12 @@
 rule:
   number_of_decks: 8
+
+  # The proportion of cards before the cut card.
   cut_card_proportion: 0.85
+
+  # Whether the dealer will discard a card at the beginning of
+  # a new shoe. And then the dealer discards more cards based
+  # on the first discarded card.
   discard_at_start: true
 
   payouts:
@@ -8,10 +14,24 @@ rule:
     banker_win: 0.95
     tie: 8
 
+    # When player gets an unsuit pair and you bet on "Player Pair", you win.
+    # When banker gets an unsuit pair and you bet on "Banker Pair", you win.
     unsuit_pair: 11
+
+    # When either player or banker gets an unsuit pair, you win.
     either_pair: 5
+
+    # When either player or banker gets a suit pair, you win.
+    # When both get a suit pair, you win much more.
     perfect_pair: [25, 200]
 
+    # Take player as an example. When you bet on "Player Bonus", you
+    # are believing player not only wins over the banker, but also wins
+    # by at least 4, or by natural hand win.
+    # When player doesn't get a natural and wins banker by 4, you win.
+    # When by 5, you win more. When by 6, 7, 8, 9, you win more and more.
+    # When player gets a natural and win, you also win a little.
+    # When player gets a natural and tie, you neither win nor lose.
     bonus_unnatural: [1, 2, 4, 6, 10, 30]
     bonus_natural_win: 1
     bonus_natural_tie: 0
