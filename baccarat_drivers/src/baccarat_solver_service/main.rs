@@ -7,6 +7,13 @@ use baccarat_drivers_lib::parse_config_from_file;
 use clap::Parser;
 use std::{mem::MaybeUninit, sync::RwLock};
 
+#[cfg(feature = "embed_website_assets")]
+use actix_web::get;
+#[cfg(feature = "embed_website_assets")]
+use mime_guess;
+#[cfg(feature = "embed_website_assets")]
+use rust_embed::RustEmbed;
+
 const DEFAULT_CONFIG_PATH: &str = "~/.baccarat.yml";
 
 #[derive(Debug, Parser)]
@@ -31,7 +38,7 @@ struct ServiceState {
     rule: RwLock<Rule>,
 }
 
-#[post("/solve")]
+#[post("/api/solve")]
 async fn solve(card_count: web::Json<Vec<u32>>, state: web::Data<ServiceState>) -> impl Responder {
     let rule = state.rule.read().unwrap();
     let card_count = card_count.into_inner();
@@ -52,12 +59,42 @@ async fn solve(card_count: web::Json<Vec<u32>>, state: web::Data<ServiceState>) 
     HttpResponse::Ok().json(solution)
 }
 
-#[post("/change_rule")]
+#[post("/api/change_rule")]
 async fn change_rule(new_rule: web::Json<Rule>, state: web::Data<ServiceState>) -> impl Responder {
     let mut rule = state.rule.write().unwrap();
     let new_rule: Rule = new_rule.into_inner().into();
     *rule = new_rule;
     HttpResponse::Ok()
+}
+
+#[cfg(feature = "embed_website_assets")]
+#[derive(RustEmbed)]
+#[folder = "../baccarat_assistant/dist/"]
+struct Assets;
+
+#[cfg(feature = "embed_website_assets")]
+fn handle_embedded_file(path: &str) -> HttpResponse {
+    match Assets::get(path) {
+        Some(content) => HttpResponse::Ok()
+            .content_type(mime_guess::from_path(path).first_or_octet_stream().as_ref())
+            .body(content.data.into_owned()),
+        None => HttpResponse::NotFound().body("404 Not Found"),
+    }
+}
+
+#[cfg(feature = "embed_website_assets")]
+#[get("/")]
+async fn index() -> impl Responder {
+    let index = Assets::get("index.html").unwrap();
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(index.data.into_owned())
+}
+
+#[cfg(feature = "embed_website_assets")]
+#[get("/{_:.*}")]
+async fn dist(path: web::Path<String>) -> impl Responder {
+    handle_embedded_file(path.as_str())
 }
 
 #[actix_web::main]
@@ -95,10 +132,15 @@ async fn main() -> std::io::Result<()> {
         rule: RwLock::new(rule.clone()),
     });
     HttpServer::new(move || {
-        App::new()
+        let app = App::new()
             .app_data(state.clone())
             .service(solve)
-            .service(change_rule)
+            .service(change_rule);
+
+        #[cfg(feature = "embed_website_assets")]
+        let app = app.service(index).service(dist);
+
+        app
     })
     .bind((&c.listening_ip as &str, c.listening_port))?
     .run()
