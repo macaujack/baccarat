@@ -1,3 +1,4 @@
+mod decks_edit;
 mod help;
 mod insights;
 mod undolist;
@@ -6,6 +7,7 @@ use baccarat::calculation::Solution;
 use gloo_console;
 use gloo_net;
 use gloo_storage::{LocalStorage, Storage};
+use gloo_timers::callback::Timeout;
 use wasm_bindgen_futures;
 use yew::prelude::*;
 
@@ -33,6 +35,10 @@ fn App() -> Html {
     let solution: UseStateHandle<Solution> = use_state(|| Default::default());
     let undo_list = use_state(|| UndoList::new());
     let show_help = use_state(|| false);
+    let reset_pressing = use_state(|| false);
+    let show_decks_edit = use_state(|| false);
+    let timer_true_trigger = use_state(|| false);
+    let timeout: UseStateHandle<Option<Timeout>> = use_state(|| None);
 
     // Effect for (counter_try, retry_times) -> (solution, is_requesting, hint, counter_display, undo_list)
     {
@@ -154,6 +160,25 @@ fn App() -> Html {
         );
     }
 
+    {
+        let timer_true_trigger = timer_true_trigger.clone();
+        let trigger_value = *timer_true_trigger;
+        let show_decks_edit = show_decks_edit.clone();
+        let reset_pressing = reset_pressing.clone();
+        use_effect_with_deps(
+            move |_| {
+                if !*timer_true_trigger {
+                    return;
+                }
+                timer_true_trigger.set(false);
+                if *reset_pressing {
+                    show_decks_edit.set(true);
+                }
+            },
+            trigger_value,
+        );
+    }
+
     let mut card_names: [[String; 13]; 4] = Default::default();
     for i in 0..4 {
         for j in 0..13 {
@@ -250,10 +275,38 @@ fn App() -> Html {
         }
     };
 
+    let onmousedown_reset = {
+        let reset_pressing = reset_pressing.clone();
+        let timer_true_trigger = timer_true_trigger.clone();
+        let timeout = timeout.clone();
+        move |_| {
+            reset_pressing.set(true);
+            let timer_true_trigger = timer_true_trigger.clone();
+            timeout.set(Some(Timeout::new(1000, move || {
+                timer_true_trigger.set(true);
+            })));
+        }
+    };
+
+    let onmouseup_reset = {
+        let reset_pressing = reset_pressing.clone();
+        let timeout = timeout.clone();
+        move |_| {
+            reset_pressing.set(false);
+            if timeout.is_some() {
+                timeout.set(None);
+            }
+        }
+    };
+
     let onclick_help = {
         let show_help = show_help.clone();
+        let hint = hint.clone();
         move |_| {
             show_help.set(true);
+            if hint.len() != 0 {
+                hint.set(String::from(""));
+            }
         }
     };
 
@@ -261,6 +314,30 @@ fn App() -> Html {
         let show_help = show_help.clone();
         move |_| {
             show_help.set(false);
+        }
+    };
+
+    let onconfirm_decks_edit = {
+        let show_decks_edit = show_decks_edit.clone();
+        let number_of_decks = number_of_decks.clone();
+        let hint = hint.clone();
+        move |new_number_of_decks| {
+            show_decks_edit.set(false);
+            if new_number_of_decks <= 0 {
+                hint.set(String::from("Number of decks must be positive."));
+                return;
+            }
+            if new_number_of_decks == *number_of_decks {
+                hint.set(String::from("No change"));
+                return;
+            }
+            if hint.len() != 0 {
+                hint.set(String::from(""));
+            }
+            number_of_decks.set(new_number_of_decks);
+            if let Err(_) = <LocalStorage as Storage>::set(NUMBER_OF_DECKS, new_number_of_decks) {
+                panic!("Cannot set local storage!");
+            }
         }
     };
 
@@ -272,7 +349,7 @@ fn App() -> Html {
             <div id="control_buttons">
                 <button id="undo" title="Undo" type="button" onclick={Callback::from(onclick_undo)}>{"↶"}</button>
                 <button id="redo" title="Redo" type="button" onclick={Callback::from(onclick_redo)}>{"↷"}</button>
-                <button id="reset" title="Reset" type="button" onclick={Callback::from(onclick_reset)}>{"↻"}</button>
+                <button id="reset" title="Reset" type="button" onmousedown={Callback::from(onmousedown_reset)} onmouseup={Callback::from(onmouseup_reset)} onclick={Callback::from(onclick_reset)}>{"↻"}</button>
                 <button id="help" title="Help" type="button" onclick={Callback::from(onclick_help)}>{"?"}</button>
             </div>
 
@@ -280,6 +357,10 @@ fn App() -> Html {
 
             if *show_help {
                 <help::HelpDiv on_close={Callback::from(onclose_help)} />
+            }
+
+            if *show_decks_edit {
+                <decks_edit::DecksEdit on_confirm={Callback::from(onconfirm_decks_edit)} initial_num={*number_of_decks} />
             }
         </>
     }

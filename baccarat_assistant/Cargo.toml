@@ -13,4 +13,7 @@ getrandom = { version = "0.2", features = ["js"] }
 gloo-storage = "0.2"
 gloo-console = "0.2"
 gloo-net = "0.2"
+gloo-timers = "0.2"
+wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
+web-sys = "0.3"

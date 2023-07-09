@@ -15,7 +15,7 @@ pub fn HelpDiv(props: &PropsHelp) -> Html {
     };
 
     html! {
-        <div id="help_bg" onclick={Callback::from(onclick_help_bg)}>
+        <div id="help_bg" class="popup_bg" onclick={Callback::from(onclick_help_bg)}>
         <div id="help_content">
         <h1>{"Help"}</h1>
         <p>{"(Click anywhere to exit the help page.)"}</p>

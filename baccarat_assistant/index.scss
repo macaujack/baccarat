@@ -88,7 +88,7 @@ div {
     white-space: nowrap;
 }
 
-#help_bg {
+.popup_bg {
     position: fixed;
     z-index: 1;
     left: 0;
@@ -97,6 +97,9 @@ div {
     height: 100%;
     overflow: auto;
     background-color: rgba(0, 0, 0, 0.4);
+}
+
+#help_bg {
     display: block;
 }
 
@@ -126,6 +129,27 @@ div {
 
 #help_content p {
     font-size: 8px;
+}
+
+#decks_edit {
+    background-color: white;
+    margin: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+#change_decks {
+    flex-direction: row;
+}
+
+#decks_edit input {
+    width: 50px;
+}
+
+#confirm_change_decks {
+    margin: 15px auto 0;
+    width: fit-content;
 }
 
 @media (max-width: 600px) and (orientation: portrait) {
